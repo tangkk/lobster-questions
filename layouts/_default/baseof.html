@@ -1,1 +1,31 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{ if .Title }}{{ .Title }} · {{ end }}龙虾问题</title><link rel="stylesheet" href="{{ "css/main.css" | relURL }}"></head><body><header><a href="{{ "/" | relURL }}"><strong>龙虾问题</strong></a><span>从一个问题出发，把一件事情想明白</span></header><main>{{ block "main" . }}{{ end }}</main><footer>龙虾问题 · Podcast 与文字版同步</footer></body></html>
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ if .IsHome }}{{ .Site.Title }}{{ else }}{{ .Title }} · {{ .Site.Title }}{{ end }}</title>
+  <meta name="description" content="{{ with .Description }}{{ . }}{{ else }}{{ with .Site.Params.description }}{{ . }}{{ end }}{{ end }}" />
+  <link rel="icon" type="image/svg+xml" href="{{ "icon.svg" | relURL }}" />
+  <link rel="apple-touch-icon" href="{{ "icon.svg" | relURL }}" />
+  <link rel="alternate" type="application/rss+xml" title="{{ .Site.Title }} RSS" href="{{ "index.xml" | relURL }}" />
+  <link rel="stylesheet" href="{{ "css/main.css" | relURL }}" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <h1><a href="{{ "" | relURL }}">{{ .Site.Title }}</a></h1>
+      <p>{{ .Site.Params.description }}</p>
+    </div>
+  </header>
+
+  <main class="container">
+    {{ block "main" . }}{{ end }}
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>© {{ now.Year }} {{ .Site.Title }} · <a href="{{ "index.xml" | relURL }}">RSS 订阅</a></p>
+    </div>
+  </footer>
+</body>
+</html>

@@ -1,10 +1,16 @@
 baseURL = 'https://tangkk.github.io/lobster-questions/'
-languageCode = 'zh-CN'
-title = '龙虾问题'
-disableKinds = ['taxonomy', 'term']
+languageCode = 'zh-cn'
+title = '龙虾问题文字版'
+defaultContentLanguage = 'zh'
 
 [params]
-description = '从一个问题出发，把一件事情想明白。'
+  description = '从一个问题出发，把一件事情想明白。'
 
-[markup.goldmark.renderer]
-unsafe = true
+[outputs]
+  home = ['HTML', 'RSS']
+  section = ['HTML', 'RSS']
+
+[markup]
+  [markup.goldmark]
+    [markup.goldmark.renderer]
+      unsafe = true

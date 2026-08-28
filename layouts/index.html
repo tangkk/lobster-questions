@@ -1,1 +1,15 @@
-{{ define "main" }}<section class="hero"><h1>龙虾问题</h1><p>从一个问题出发，把一件事情想明白。</p><a href="https://tangkk.github.io/lobster-questions-podcast/feed.xml">订阅 Podcast RSS</a></section><section><h2>全部问题</h2>{{ range .Site.RegularPages.ByDate.Reverse }}<article class="card"><time>{{ .Date.Format "2006-01-02" }}</time><h3><a href="{{ .RelPermalink }}">{{ .Title }}</a></h3>{{ with .Description }}<p>{{ . }}</p>{{ end }}</article>{{ end }}</section>{{ end }}
+{{ define "main" }}
+<section>
+  <h2>最新文章</h2>
+  <ul class="post-list">
+    {{ range .Site.RegularPages.ByDate.Reverse }}
+      <li>
+        <a href="{{ .RelPermalink }}">{{ .Title }}</a>
+        <span class="date">{{ .Date.Format "2006-01-02" }}</span>
+      </li>
+    {{ else }}
+      <li>还没有文章，先发布第一篇吧。</li>
+    {{ end }}
+  </ul>
+</section>
+{{ end }}
