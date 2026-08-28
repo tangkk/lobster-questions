@@ -1,0 +1,1 @@
+{{ define "main" }}<h1>{{ .Title }}</h1>{{ range .Pages.ByDate.Reverse }}<article class="card"><h2><a href="{{ .RelPermalink }}">{{ .Title }}</a></h2>{{ with .Description }}<p>{{ . }}</p>{{ end }}</article>{{ end }}{{ end }}
