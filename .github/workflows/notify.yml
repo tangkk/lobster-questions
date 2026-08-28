@@ -1,7 +1,7 @@
 name: Notify Workflow Completion
 on:
   workflow_run:
-    workflows: [Deploy Hugo site, Publish Preview Text]
+    workflows: [Deploy Hugo site to Pages, Publish Preview Text]
     types: [completed]
 permissions: {contents: read}
 jobs:
