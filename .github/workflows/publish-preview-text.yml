@@ -11,15 +11,31 @@ concurrency: {group: preview-text-questions, cancel-in-progress: false}
 jobs:
   publish:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v6
         with: {fetch-depth: 2}
       - uses: peaceiris/actions-hugo@v3
         with: {hugo-version: '0.157.0', extended: true}
       - id: req
+        shell: bash
         run: |
-          REQUEST=$(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA" | grep '^publish-preview/.*\.json$' | head -n1); test -n "$REQUEST"
-          for key in canonical_url filename title date description audio_url; do value=$(jq -r --arg k "$key" '.[$k] // empty' "$REQUEST"); test -n "$value"; echo "$key<<EOF" >> "$GITHUB_OUTPUT"; echo "$value" >> "$GITHUB_OUTPUT"; echo EOF >> "$GITHUB_OUTPUT"; done
+          set -euo pipefail
+          REQUEST=$(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA" | grep '^publish-preview/.*\.json$' | head -n1)
+          test -n "$REQUEST"
+          python -m json.tool "$REQUEST" >/dev/null
+          for key in canonical_url filename title date description audio_url; do
+            value=$(jq -r --arg k "$key" '.[$k] // empty' "$REQUEST")
+            test -n "$value"
+            echo "$key<<EOF" >> "$GITHUB_OUTPUT"
+            echo "$value" >> "$GITHUB_OUTPUT"
+            echo EOF >> "$GITHUB_OUTPUT"
+          done
+          FILE=$(jq -r '.filename' "$REQUEST")
+          SLUG="${FILE%.md}"
+          echo "slug=$SLUG" >> "$GITHUB_OUTPUT"
       - name: Generate exact canonical article
         env:
           URL: "${{ steps.req.outputs.canonical_url }}"
@@ -29,19 +45,48 @@ jobs:
           DESCRIPTION: "${{ steps.req.outputs.description }}"
           AUDIO: "${{ steps.req.outputs.audio_url }}"
         run: |
+          set -euo pipefail
           mkdir -p content/posts
           curl --fail --retry 3 "$URL" -o /tmp/canonical.txt
           { printf '%s\n' '---'; printf 'title: "%s"\n' "$TITLE"; printf 'date: %s\n' "$DATE"; printf 'draft: false\n'; printf 'description: "%s"\n' "$DESCRIPTION"; printf '%s\n\n' '---'; printf '<audio controls preload="none"><source src="%s" type="audio/mpeg"></audio>\n\n备用播放链接：%s\n\n' "$AUDIO" "$AUDIO"; cat /tmp/canonical.txt; } > "content/posts/$FILE"
-      - run: |
+      - name: Build and verify exact article
+        env:
+          SLUG: "${{ steps.req.outputs.slug }}"
+          TITLE: "${{ steps.req.outputs.title }}"
+          AUDIO: "${{ steps.req.outputs.audio_url }}"
+        run: |
+          set -euo pipefail
           hugo --minify --buildFuture
-          test -f "public/posts/${{ steps.req.outputs.filename }}" || true
-          grep -F "${{ steps.req.outputs.title }}" public/index.html
-          grep -R -F "${{ steps.req.outputs.audio_url }}" public/posts/
+          PAGE="public/posts/$SLUG/index.html"
+          test -f "$PAGE"
+          grep -F "$TITLE" "$PAGE"
+          grep -F "$AUDIO" "$PAGE"
+          grep -F "$TITLE" public/index.html
       - uses: actions/upload-pages-artifact@v4
         with: {path: ./public}
       - name: Commit source
         run: |
-          git config user.name github-actions[bot]; git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add content/posts; git diff --cached --quiet || git commit -m "Publish preview text: ${{ steps.req.outputs.title }} [skip ci]"; git push
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add content/posts
+          git diff --cached --quiet || git commit -m "Publish preview text: ${{ steps.req.outputs.title }} [skip ci]"
+          git push
       - name: Deploy Pages
+        id: deployment
         uses: actions/deploy-pages@v4
+      - name: Verify online article, homepage, and audio
+        env:
+          SLUG: "${{ steps.req.outputs.slug }}"
+          TITLE: "${{ steps.req.outputs.title }}"
+          AUDIO: "${{ steps.req.outputs.audio_url }}"
+        run: |
+          set -euo pipefail
+          ARTICLE="https://tangkk.github.io/lobster-questions/posts/$SLUG/"
+          HOME="https://tangkk.github.io/lobster-questions/"
+          ok=0
+          for i in {1..12}; do
+            if curl -fsSL "$ARTICLE" -o /tmp/article.html && curl -fsSL "$HOME" -o /tmp/home.html && grep -Fq "$TITLE" /tmp/article.html && grep -Fq "$AUDIO" /tmp/article.html && grep -Fq "$TITLE" /tmp/home.html && curl -fsSI "$AUDIO" >/dev/null; then ok=1; break; fi
+            sleep 10
+          done
+          test "$ok" -eq 1
